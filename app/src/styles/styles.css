@@ -429,3 +429,27 @@ a.menu-item { color: var(--text); }
 .icon-btn:disabled { color: #b8b8b8; cursor: default; background: none; }
 .badge.mini { position: static; display: inline-grid; width: 16px; height: 16px; border: 0; font-size: 10px; vertical-align: middle; }
 .badge.mini svg { width: 70%; height: 70%; }
+
+/* ---------- Mốc 4: màn Xem lại ---------- */
+.review-head { display: flex; align-items: flex-start; justify-content: flex-start; gap: 8px; }
+.review-head .icon-btn { margin: -6px 0 0 -10px; flex: none; }
+.review-progress { max-width: 480px; margin-top: 8px; }
+.review-progress span { transition: width 300ms ease; }
+.mclass { display: inline-flex; align-items: center; font-weight: 500; }
+.retry-msg.ok { color: var(--positive); font-weight: 500; }
+.retry-msg.bad { color: var(--negative); }
+.retry-msg.wait { color: var(--muted); }
+.mactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.tally-list { display: grid; gap: 10px; }
+.tally-list li { display: flex; align-items: center; }
+.tally-list b { margin-left: auto; font-weight: 500; }
+.movelist button { display: inline-flex; align-items: center; gap: 3px; color: inherit; font: inherit; }
+.evalchart { display: block; width: 100%; height: 150px; cursor: pointer; touch-action: manipulation; }
+.ec-zero { stroke: #8a8a8a; stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.ec-grid { stroke: var(--grid); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ec-area { fill: var(--coach); opacity: 0.12; }
+.ec-line { fill: none; stroke: var(--coach); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.ec-mark { stroke: var(--negative); stroke-width: 1.5; opacity: 0.6; vector-effect: non-scaling-stroke; }
+.ec-cur { stroke: var(--text); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.end-actions { grid-template-columns: 1fr 1fr; }
+.end-close { grid-column: 1 / -1; height: 36px !important; }

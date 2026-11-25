@@ -25,3 +25,6 @@ export const putGame = (g: GameRecord) => run('readwrite', (s) => s.put(g));
 
 /** Mọi ván đã kết thúc, mới nhất trước. */
 export const listGames = () => run<GameRecord[]>('readonly', (s) => s.getAll()).then((gs) => gs.sort((a, b) => b.endedAt.localeCompare(a.endedAt)));
+
+/** Một ván theo id, hoặc undefined. */
+export const getGame = (id: string) => run<GameRecord | undefined>('readonly', (s) => s.get(id));

@@ -81,6 +81,9 @@ export function Play({ boss }: { boss: Boss }) {
   const [hint, setHint] = useState<0 | 1 | 2>(0);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [grades, setGrades] = useState<Record<number, Grade>>(init?.grades ?? {}); // khóa = chỉ số nửa nước
+  // điểm sau mỗi nửa nước (góc người chơi), khóa −1 = thế cờ ban đầu — vẽ đồ thị ở màn Xem lại
+  const [evals, setEvals] = useState<Record<number, number>>(init?.evals ?? {});
+  const putEval = (ply: number, v: number) => setEvals((e) => ({ ...e, [ply]: v }));
   const [evalPawns, setEvalPawns] = useState<number | null>(null); // theo góc người chơi
   const [menu, setMenu] = useState(false);
   const [sheet, setSheet] = useState(false);
@@ -103,9 +106,9 @@ export function Play({ boss }: { boss: Boss }) {
   // Lưu sau mỗi thay đổi của ván; ván kết thúc thì ghi thêm vào lịch sử (ghi đè theo id nên gọi lại không sao)
   useEffect(() => {
     const sans = history.map((m) => m.san);
-    saveGame({ v: 1, id: gameId, bossId: boss.id, color, sans, grades, over, result });
-    if (over && result) void putGame({ id: gameId, bossId: boss.id, color, sans, grades, result, reason: over, endedAt: new Date().toISOString() });
-  }, [gameId, boss.id, color, history, grades, over, result]);
+    saveGame({ v: 1, id: gameId, bossId: boss.id, color, sans, grades, evals, over, result });
+    if (over && result) void putGame({ id: gameId, bossId: boss.id, color, sans, grades, evals, result, reason: over, endedAt: new Date().toISOString() });
+  }, [gameId, boss.id, color, history, grades, evals, over, result]);
 
   // Số nửa nước đã vẽ; tăng đúng 1 thì cho quân vừa đi trượt tới ô mới (đi lại, ván mới thì không)
   const drawnLen = useRef(game.history().length);
@@ -144,7 +147,7 @@ export function Play({ boss }: { boss: Boss }) {
       after.move(uciMove(r.best));
       const pv = r.info.pv[0] === r.best ? r.info.pv : [r.best];
       const a: Analysis = { fen: f, best: r.best, bestSan: sanOf(f, r.best), replySan: pv[1] ? sanOf(after.fen(), pv[1]) : null, pawns: toPawns(r.info.score), pv };
-      if (gen.current === my) { setAnalysis(a); setEvalPawns(a.pawns); }
+      if (gen.current === my) { setAnalysis(a); setEvalPawns(a.pawns); putEval(game.history().length - 1, a.pawns); }
       return a;
     });
   };
@@ -161,7 +164,10 @@ export function Play({ boss }: { boss: Boss }) {
     if (gen.current !== my || !best || best === '(none)') return;
     game.move(uciMove(best));
     sync();
-    if (game.isGameOver()) return finish(overText(game, boss.name, meRef.current), outcome(game, meRef.current));
+    if (game.isGameOver()) {
+      putEval(game.history().length - 1, game.isCheckmate() ? -10 : 0);
+      return finish(overText(game, boss.name, meRef.current), outcome(game, meRef.current));
+    }
     setPhase('you');
     analyse();
   };
@@ -211,6 +217,7 @@ export function Play({ boss }: { boss: Boss }) {
     sync(); setSel(null); setPromo(null); setHint(0); setAnalysis(null);
     if (game.isGameOver()) {
       if (game.isCheckmate()) { setGrades((gr) => ({ ...gr, [ply]: { cls: 'best', text: null } })); setEvalPawns(10); }
+      putEval(ply, game.isCheckmate() ? 10 : 0);
       return finish(overText(game, boss.name, me), outcome(game, me));
     }
     setPhase('thinking');
@@ -233,8 +240,9 @@ export function Play({ boss }: { boss: Boss }) {
       const facts = describeMove(before, move.san);
       const text = cls === 'book' ? `${opening}.${facts.length ? ` ${cap(facts.join(', '))}.` : ''}`
         : cls === 'brilliant' ? 'Thí quân mà thế cờ vẫn tốt cho bạn.' : BAD.includes(cls) ? why : facts.length ? `${facts.join(', ')}.` : null;
-      setGrades((gr) => ({ ...gr, [ply]: { cls, text } }));
+      setGrades((gr) => ({ ...gr, [ply]: { cls, text, before: a.pawns, after, best: a.best } }));
       setEvalPawns(after);
+      putEval(ply, after);
     }
     await bossTurn(my, t0);
   };
@@ -279,6 +287,7 @@ export function Play({ boss }: { boss: Boss }) {
     if (game.turn() !== meRef.current) game.undo(); // về lượt người chơi
     const n = game.history().length;
     setGrades((gr) => Object.fromEntries(Object.entries(gr).filter(([k]) => Number(k) < n)));
+    setEvals((ev) => Object.fromEntries(Object.entries(ev).filter(([k]) => Number(k) < n)));
     sync(); setHint(0); setSel(null); setPromo(null); setOver(''); setResult(undefined); setEndCard(false);
     begin(); // cầm Đen mà lùi về đầu ván thì boss đi lại nước đầu
   };
@@ -292,7 +301,7 @@ export function Play({ boss }: { boss: Boss }) {
     game.reset();
     meRef.current = me;
     setColor(me);
-    sync(); setHint(0); setSel(null); setPromo(null); setOver(''); setResult(undefined); setGrades({}); setEvalPawns(null); setMenu(false); setSheet(false);
+    sync(); setHint(0); setSel(null); setPromo(null); setOver(''); setResult(undefined); setGrades({}); setEvals({}); setEvalPawns(null); setMenu(false); setSheet(false);
     setEndCard(false); setIntro(true);
     begin();
   };
@@ -340,7 +349,10 @@ export function Play({ boss }: { boss: Boss }) {
     actions = <button type="button" className="btn secondary" onClick={() => { setPhase('loading'); void startEngine(); }}>Tải lại engine</button>;
   } else if (phase === 'over') {
     text = over; sub = gradeText;
-    actions = <button type="button" className="btn primary" onClick={() => setSheet(true)}>Ván mới</button>;
+    actions = <>
+      {result && <a className="btn primary" href={`#/review/${encodeURIComponent(gameId)}`}>Xem lại ván</a>}
+      <button type="button" className="btn secondary" onClick={() => setSheet(true)}>Ván mới</button>
+    </>;
   } else if (phase === 'thinking') {
     text = gradeText ?? (history.length && mine(history.length - 1) ? 'Coach đang xem nước của bạn…' : `${boss.name} đi trước.`);
     sub = `${boss.name} đang nghĩ…`;
@@ -409,8 +421,9 @@ export function Play({ boss }: { boss: Boss }) {
                 <span className="end-p"><img src={`pieces/${bossPiece}.svg`} alt="" />{boss.name}</span>
               </div>
               <div className="end-actions">
-                <button type="button" className="btn primary" onClick={() => setSheet(true)}>Ván mới</button>
-                <button type="button" className="btn secondary" onClick={() => setEndCard(false)}>Xem bàn cờ</button>
+                <a className="btn primary" href={`#/review/${encodeURIComponent(gameId)}`}>Xem lại ván</a>
+                <button type="button" className="btn secondary" onClick={() => setSheet(true)}>Ván mới</button>
+                <button type="button" className="btn ghost end-close" onClick={() => setEndCard(false)}>Xem bàn cờ</button>
               </div>
             </div>
           )}

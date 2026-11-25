@@ -176,3 +176,13 @@ Theo yêu cầu sau khi chơi thử: **không chặn nước**. Nước đi đư
 | Lời coach | `describeMove()` đọc các ý từ bàn cờ: nhập thành, phong cấp, bắt quân, ra quân mã/tượng, chiếm trung tâm, chiếu, tấn công/chĩa đôi quân bị đe dọa. `threatened()`: quân bị tấn công mà không ai bảo vệ, hoặc bị quân rẻ hơn tấn công. Sau nước của boss coach nói boss vừa làm gì, và cảnh báo quân của bạn đang bị đe dọa. Nước sách giờ vẫn được engine chấm (bẫy như Fool's Mate vẫn là lỗi). |
 | Sau nước sai | Khi là Sai lầm/Lỗi lớn: hai nút **Đi lại** và **Xem nước tốt hơn** (đi lại rồi hiện mũi tên nước máy chọn). |
 | Lịch sử nước | Tên khai cuộc gần nhất trên đầu danh sách; huy hiệu nhỏ cạnh từng nước của bạn; bấm một nước hoặc nút ‹ › để xem lại thế cờ cũ (bàn cờ khóa, coach nói đang xem nước nào), "Về thế cờ hiện tại" để quay lại. Trên điện thoại danh sách cuộn ngang được. |
+
+## 13. Mốc 4: màn Xem lại (`#/review/<id>`)
+
+| Phần | Logic |
+|---|---|
+| Lối vào | Nút "Xem lại" ở mỗi dòng Ván gần đây; nút **Xem lại ván** trên thẻ kết quả và trong lời coach khi ván kết thúc. |
+| Dữ liệu | Trong lúc chơi, mỗi nước của người chơi lưu `before`, `after` (điểm theo góc người chơi) và `best` (nước máy chọn); `evals` lưu điểm sau mỗi nửa nước. Ván thiếu số liệu (chơi trước Mốc 4) thì phân tích bổ sung các thế cờ còn thiếu (`depth 12 movetime 300`, có thanh tiến độ), rồi ghi lại vào IndexedDB để lần sau mở ngay. |
+| Khoảnh khắc | `keyMoments()`: tối đa 3 nước Chưa chính xác/Sai lầm/Lỗi lớn của người chơi, tụt nhiều winning chances nhất, xếp theo thứ tự ván. Bàn cờ hiện thế cờ trước nước đó: mũi tên đỏ (nước đã đi), mũi tên xanh (nước máy chọn), điểm trước → sau, lời coach. |
+| Đồ thị | Đường điểm cả ván (góc người chơi, kẹp ±10), vạch đỏ ở 3 khoảnh khắc, vạch đen ở nước đang xem; chạm để nhảy tới nước đó. |
+| Thử lại | Bàn cờ mở khóa ở thế cờ trước nước sai. Người chơi đi một nước, engine chấm 0,8 giây: tốt nhất → "Đúng nước máy chọn!", không phải nước kém → "Đúng hướng", nước kém → câu hậu quả. Có nút Thử lại / Xem nước máy chọn / Thoát. Ván gốc không đổi. |

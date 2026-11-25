@@ -9,6 +9,8 @@ export interface GameRecord {
   color: Color;
   sans: string[];
   grades: Record<number, Grade>;
+  /** điểm sau mỗi nửa nước (góc người chơi), khóa −1 = thế cờ ban đầu; ván cũ có thể thiếu */
+  evals?: Record<number, number>;
   result: Result;
   reason: string;
   endedAt: string; // ISO

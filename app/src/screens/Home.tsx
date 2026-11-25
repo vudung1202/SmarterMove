@@ -132,7 +132,7 @@ export function Home() {
           {games.length ? (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Ngày</th><th>Đối thủ</th><th className="hide-sm">Quân</th><th>Kết quả</th><th className="n">Số nước</th></tr></thead>
+                <thead><tr><th>Ngày</th><th>Đối thủ</th><th className="hide-sm">Quân</th><th>Kết quả</th><th className="n">Số nước</th><th><span className="sr">Xem lại</span></th></tr></thead>
                 <tbody>
                   {games.slice(0, 5).map((g) => {
                     const b = bossById(g.bossId);
@@ -143,6 +143,7 @@ export function Home() {
                         <td className="hide-sm">{g.color === 'w' ? 'Trắng' : 'Đen'}</td>
                         <td className={`res ${RESULT[g.result][1]}`} title={g.reason}>{RESULT[g.result][0]}</td>
                         <td className="n num">{Math.ceil(g.sans.length / 2)}</td>
+                        <td className="act"><a className="card-link" href={`#/review/${encodeURIComponent(g.id)}`}>Xem lại</a></td>
                       </tr>
                     );
                   })}
