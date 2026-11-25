@@ -4,7 +4,7 @@ Luyện cờ vua với 4 boss theo mức Elo, có gợi ý 2 bậc, chấm từn
 và thanh cơ hội thắng. Là app web (PWA) dành cho iPhone: cài ra màn hình chính và chơi được khi không có mạng.
 Engine Stockfish chạy ngay trên máy, không cần server.
 
-**Dùng thử:** https://vudung1202.github.io/nuoc-hay/ — trên iPhone mở bằng Safari → Chia sẻ → Thêm vào MH chính.
+**Dùng thử:** https://vudung1202.github.io/SmarterMove/ — trên iPhone mở bằng Safari → Chia sẻ → Thêm vào MH chính.
 
 ## Chạy trên máy
 

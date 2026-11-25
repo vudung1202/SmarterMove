@@ -32,7 +32,7 @@ function serviceWorker(): Plugin {
   }
 }
 
-// base './' để chạy được dưới mọi đường dẫn (LAN, GitHub Pages /nuoc-hay/…)
+// base './' để chạy được dưới mọi đường dẫn (LAN, GitHub Pages /SmarterMove/…)
 export default defineConfig({
   base: './',
   plugins: [react(), serviceWorker()],
