@@ -3,3 +3,4 @@ node_modules/
 # ảnh chụp kiểm tra giao diện, sinh lại được bằng tools/shoot.mjs, tools/check-app.mjs, inspect.mjs
 .taste-skill/inspect/
 .taste-skill/shots/
+.taste-skill/logo/*.png

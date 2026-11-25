@@ -4,6 +4,8 @@ import { Board } from '../components/Board.tsx';
 import { NewGameSheet } from '../components/NewGameSheet.tsx';
 import { listGames } from '../lib/history.ts';
 import { passed, PROMOTE, recent, recentWins, recommended, record, type GameRecord } from '../lib/progress.ts';
+import { useOfflineReady } from '../lib/offline.ts';
+import { gamesToPgn } from '../lib/pgn.ts';
 import { loadGame, startGame } from '../lib/saved-game.ts';
 
 const RESULT = { win: ['Thắng', 'win'], draw: ['Hòa', 'draw'], loss: ['Thua', 'loss'] } as const;
@@ -18,6 +20,7 @@ export function Home() {
   const [games, setGames] = useState<GameRecord[] | null>(null);
   const [sheetFor, setSheetFor] = useState<Boss | null>(null);
   const [saved] = useState(loadGame);
+  const offline = useOfflineReady();
   useEffect(() => { void listGames().then(setGames, () => setGames([])); }, []);
   if (!games) return null; // IndexedDB trả trong vài ms; không cần khung chờ
 
@@ -32,6 +35,19 @@ export function Home() {
       ? `Bạn đã qua cả ${BOSSES.length} boss. Tiếp tục giữ phong độ với ${rec.name}.`
       : `${prev ? `Bạn thắng ${prev.name} ${recentWins(games, prev.id)}/${recent(games, prev.id).length} ván gần nhất. ` : ''}Với ${rec.name}, thắng thêm ${need} ván nữa là lên cấp.`;
 
+  /** Xuất mọi ván ra PGN: iPhone mở bảng Chia sẻ (lưu vào Tệp, gửi đi…), máy khác tải file về. */
+  const exportPgn = async () => {
+    const d = new Date();
+    const file = new File([gamesToPgn(games, bossById)], `nuoc-hay-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.pgn`, { type: 'application/x-chess-pgn' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'Ván cờ Nước Hay' }); return; } catch (err) { if ((err as Error).name === 'AbortError') return; }
+    }
+    const url = URL.createObjectURL(file);
+    const a = Object.assign(document.createElement('a'), { href: url, download: file.name });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   const start = (b: Boss, color: 'w' | 'b') => {
     startGame(b.id, color);
     location.hash = '#/play';
@@ -39,6 +55,7 @@ export function Home() {
 
   return (
     <div className="page home">
+      <p className="brand"><img src="icons/icon.svg" alt="" width="28" height="28" />Nước Hay</p>
       <header className="title-row"><div><h1>Chọn đối thủ</h1><p className="sub">{finding}</p></div></header>
 
       {unfinished && unBoss && (
@@ -83,7 +100,10 @@ export function Home() {
 
       <div className="grid lower">
         <section className={`panel recent${games.length ? '' : ' full'}`}>
-          <header><h2>Ván gần đây</h2>{games.length > 0 && <span className="meta num">{games.length} ván</span>}</header>
+          <header>
+            <h2>Ván gần đây</h2>
+            {games.length > 0 && <span className="recent-tools"><span className="meta num">{games.length} ván</span><button type="button" className="card-link" onClick={() => void exportPgn()}>Xuất PGN</button></span>}
+          </header>
           {games.length ? (
             <div className="table-wrap">
               <table>
@@ -132,7 +152,8 @@ export function Home() {
           </section>
         )}
       </div>
-      <p className="credit">Quân cờ: bộ cburnett của Colin M.L. Burnett, CC BY-SA 3.0. Engine: Stockfish 19, GPLv3. Sách khai cuộc: lichess-org/chess-openings, CC0.</p>
+      {offline !== 'off' && <p className={`offline-status ${offline}`}>{offline === 'ready' ? 'Đã sẵn sàng chơi offline.' : 'Đang tải dữ liệu để chơi offline…'}</p>}
+      <p className="credit">Quân cờ: bộ cburnett của Colin M.L. Burnett, CC BY-SA 3.0. Engine: Stockfish 19, GPLv3. Sách khai cuộc: lichess-org/chess-openings, CC0. Mã nguồn (GPLv3): <a href="https://github.com/vudung1202/nuoc-hay">github.com/vudung1202/nuoc-hay</a>.</p>
 
       {sheetFor && (
         <NewGameSheet boss={sheetFor} onClose={() => setSheetFor(null)} onStart={(c) => start(sheetFor, c)}

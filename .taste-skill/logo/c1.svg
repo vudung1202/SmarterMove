@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <rect width="120" height="120" fill="#f4f3f1"/>
+  <g transform="translate(9 8) scale(0.86)">
+    <!-- đế hai tầng -->
+    <rect x="28" y="99" width="64" height="9" fill="#141414"/>
+    <rect x="34" y="92" width="52" height="7" fill="#3f3d39"/>
+    <!-- Mã gấp giấy: mỗi mặt phẳng một bậc tông, sáng từ bên trái -->
+    <path fill="#55524c" d="M12 59 L16 52 L30 56 L18 67 Z"/>
+    <path fill="#4a4743" d="M16 52 L40 30 L52 44 L30 56 Z"/>
+    <path fill="#2e2d2a" d="M40 30 L50 22 L58 9 L56 32 L52 44 Z"/>
+    <path fill="#3f3d39" d="M58 9 L66 22 L56 32 Z"/>
+    <path fill="#22211f" d="M18 67 L30 56 L52 44 L48 72 L30 70 Z"/>
+    <path fill="#1a1918" d="M56 32 L66 22 L78 29 L66 46 L52 44 Z"/>
+    <path fill="#141414" d="M78 29 C84 36 88 46 88 58 L72 64 L66 46 Z"/>
+    <path fill="#2a2926" d="M52 44 L66 46 L72 64 L48 72 Z"/>
+    <path fill="#3a3835" d="M48 72 L72 64 L62 92 L40 92 Z"/>
+    <path fill="#1c1b19" d="M72 64 L88 58 L88 92 L62 92 Z"/>
+    <!-- mắt xanh và mày vát -->
+    <path fill="#1d5fbf" d="M42 41 l6 -6 l6 6 l-6 6 z"/>
+    <path fill="#f4f3f1" d="M37 33.5 L56 29.5 L55 32 L39 35.5 Z"/>
+    <!-- miệng -->
+    <path fill="#f4f3f1" d="M12 60 L25 62.5 L14 63.5 Z"/>
+  </g>
+</svg>

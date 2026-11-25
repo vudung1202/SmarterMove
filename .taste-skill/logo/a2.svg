@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <rect width="120" height="120" fill="#f4f3f1"/>
+  <!-- đế hai tầng -->
+  <rect x="28" y="99" width="64" height="9" fill="#141414"/>
+  <rect x="34" y="92" width="52" height="7" fill="#3f3d39"/>
+  <!-- thân: chỉ đường thẳng và góc vát -->
+  <path fill="#141414" d="M40 92 L48 72 L30 70 L18 67 L12 59 L16 52 L40 30 L50 22 L58 9 L66 22 C78 28 88 42 88 60 L88 92 Z"/>
+  <!-- mặt trước sáng một bậc -->
+  <path fill="#3f3d39" d="M12 59 L16 52 L40 30 L50 22 L52 25 L30 60 L26 69 L18 67 Z"/>
+  <!-- miệng -->
+  <path fill="#f4f3f1" d="M12 60 L25 62.5 L14 63.5 Z"/>
+  <!-- lỗ mũi -->
+  <path fill="#141414" d="M17 55 l3 -2 l1 3 z"/>
+  <!-- mắt: hình thoi xanh, nhìn ra nước hay; mày vát cho ánh nhìn sắc -->
+  <path fill="#1d5fbf" d="M42 42 l6 -6 l6 6 l-6 6 z"/>
+  <path fill="#f4f3f1" d="M38 34 L56 30 L55 32.5 L40 36 Z"/>
+  <!-- bờm: ba vết vát dọc lưng -->
+  <path fill="#f4f3f1" d="M82 42 l6 -2 v6 z M86 56 l2 -2 v8 z M86 72 l2 -2 v8 z"/>
+</svg>

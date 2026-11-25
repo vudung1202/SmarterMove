@@ -156,3 +156,13 @@ Theo yêu cầu sau khi chơi thử: **không chặn nước**. Nước đi đư
 | Ván dở | Tại một thời điểm chỉ có một ván dở, lưu trong `localStorage`. Chọn boss khác khi đang có ván dở thì hộp thoại báo trước "Ván dở với X sẽ bị xóa, không tính thắng thua". |
 | Lịch sử | Khi ván kết thúc (chiếu hết, hòa hoặc bỏ ván), ván được ghi vào IndexedDB `nuoc-hay/games`, gồm kết quả, lý do, các nước và đánh giá từng nước (dùng cho màn Xem lại ở Mốc 4). Mỗi ván có một id; ghi lại cùng id thì ghi đè (ví dụ khi đi lại sau khi ván đã kết thúc). |
 | Thành tích, đề xuất | Tính từ lịch sử: thắng/hòa/thua theo boss. Boss đề xuất là boss thấp nhất chưa thắng 3 trong 5 ván gần nhất. Tiến độ lên cấp hiện đúng tỉ lệ số ván thắng / 3. |
+
+## 11. Mốc 5: cài như app và chạy offline
+
+| Phần | Logic |
+|---|---|
+| Cài app | `manifest.webmanifest` (standalone, màn dọc, màu nền đá) và `apple-touch-icon` 180 px. Logo là con Mã cburnett, mắt màu xanh của coach (`.taste-skill/logo/m1.svg`). |
+| Offline | `sw.js` được sinh lúc build (`vite.config.ts`). Khi cài, nó lưu sẵn toàn bộ file: JS/CSS, engine 1,8 MB, sách khai cuộc, quân cờ, font Geist (đi kèm app, không lấy từ Google), icon. Sau đó mọi request đều trả từ bộ nhớ đệm trước (cache-first, có `ignoreVary`). Tên cache đổi theo nội dung, nên mở app khi có mạng sẽ tự cập nhật bản mới. |
+| Báo trạng thái | Màn Chọn đối thủ ghi "Đã sẵn sàng chơi offline" khi service worker đã lưu xong, và xin `navigator.storage.persist()` để trình duyệt không tự xóa dữ liệu. |
+| Xuất PGN | Nút "Xuất PGN" ở khối Ván gần đây: trên iPhone mở bảng Chia sẻ, máy khác tải file `.pgn` về. |
+| Kiểm tra | `node tools/check-offline.mjs`: chờ báo sẵn sàng, tắt server, tải lại trang, rồi đấu một nước. |
