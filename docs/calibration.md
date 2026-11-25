@@ -30,3 +30,5 @@ Cấu hình đã đo:
 Lịch sử chỉnh: lần đo đầu, Mã Non (Skill 3, depth 8) **mạnh hơn** Tượng Gỗ (UCI_Elo 1400) khoảng 380 Elo. Vì vậy hai boss thấp được đổi sang
 Skill 0, depth thấp và đi nước ngẫu nhiên với một xác suất nhất định (`blunder`).
 Giới hạn: chỉ đo được độ chênh giữa các boss. Elo tuyệt đối vẫn là ước lượng, cần người thật chơi nhiều ván mới đo được.
+
+Cập nhật sau đo: thời gian nghĩ tối đa của Hậu Bạc tăng lên 3 giây và của Vua Vàng tăng lên 5 giây (giới hạn depth giữ nguyên), để trên iPhone hai boss này mạnh gần đúng nhãn Elo hơn. Trên Mac giới hạn depth vẫn đến trước, nên bảng trên không đổi.
