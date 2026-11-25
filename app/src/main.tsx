@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.tsx';
+import { captureInstallPrompt } from './lib/install.ts';
 import { registerOffline } from './lib/offline.ts';
 import './styles/fonts.css';
 import './styles/app.css';
@@ -12,4 +13,5 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
+captureInstallPrompt();
 registerOffline();

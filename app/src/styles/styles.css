@@ -361,3 +361,14 @@ a.menu-item { color: var(--text); }
 .recent-tools { display: inline-flex; align-items: baseline; gap: 16px; }
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 500; }
 .brand img { border-radius: 7px; }
+.install { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
+.install img { border-radius: 10px; flex: none; }
+.install-text { flex: 1; display: grid; gap: 2px; }
+.install-text b { font-weight: 500; }
+.install-text svg { display: inline-block; vertical-align: -3px; color: var(--coach); }
+.install-actions { display: flex; gap: 8px; }
+@media (max-width: 860px) {
+  .install { flex-wrap: wrap; align-items: flex-start; }
+  .install-text { flex: 1 1 220px; }
+  .install-actions { width: 100%; justify-content: flex-end; }
+}

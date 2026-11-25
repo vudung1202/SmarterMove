@@ -4,6 +4,7 @@ import { Board } from '../components/Board.tsx';
 import { NewGameSheet } from '../components/NewGameSheet.tsx';
 import { listGames } from '../lib/history.ts';
 import { passed, PROMOTE, recent, recentWins, recommended, record, type GameRecord } from '../lib/progress.ts';
+import { useInstall } from '../lib/install.ts';
 import { useOfflineReady } from '../lib/offline.ts';
 import { gamesToPgn } from '../lib/pgn.ts';
 import { loadGame, startGame } from '../lib/saved-game.ts';
@@ -21,6 +22,7 @@ export function Home() {
   const [sheetFor, setSheetFor] = useState<Boss | null>(null);
   const [saved] = useState(loadGame);
   const offline = useOfflineReady();
+  const install = useInstall();
   useEffect(() => { void listGames().then(setGames, () => setGames([])); }, []);
   if (!games) return null; // IndexedDB trả trong vài ms; không cần khung chờ
 
@@ -56,6 +58,27 @@ export function Home() {
   return (
     <div className="page home">
       <p className="brand"><img src="icons/icon.svg" alt="" width="28" height="28" />Nước Hay</p>
+      {install.kind !== 'none' && (
+        <section className="install" aria-label="Cài app">
+          <img src="icons/apple-touch-icon.png" alt="" width="44" height="44" />
+          <div className="install-text">
+            <b>Cài Nước Hay ra màn hình chính</b>
+            {install.kind === 'ios' ? (
+              <span>
+                Bấm{' '}
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label="Chia sẻ" role="img">
+                  <path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M8 10H6v10h12V10h-2" />
+                </svg>{' '}
+                <b>Chia sẻ</b> (Safari bản mới: nút <b>⋯</b> → Chia sẻ), rồi chọn <b>Thêm vào MH chính</b>. Mở từ biểu tượng để chơi toàn màn hình, kể cả khi mất mạng.
+              </span>
+            ) : <span>Mở như một app riêng và chơi được khi mất mạng.</span>}
+          </div>
+          <div className="install-actions">
+            {install.kind === 'prompt' && <button type="button" className="btn primary" onClick={() => void install.install()}>Cài app</button>}
+            <button type="button" className="btn ghost" onClick={install.dismiss}>Để sau</button>
+          </div>
+        </section>
+      )}
       <header className="title-row"><div><h1>Chọn đối thủ</h1><p className="sub">{finding}</p></div></header>
 
       {unfinished && unBoss && (
