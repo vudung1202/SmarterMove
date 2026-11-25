@@ -8,6 +8,7 @@ import { useInstall } from '../lib/install.ts';
 import { useOfflineReady } from '../lib/offline.ts';
 import { gamesToPgn } from '../lib/pgn.ts';
 import { loadGame, startGame } from '../lib/saved-game.ts';
+import { unlockAudio } from '../lib/sound.ts';
 
 const RESULT = { win: ['Thắng', 'win'], draw: ['Hòa', 'draw'], loss: ['Thua', 'loss'] } as const;
 
@@ -51,6 +52,7 @@ export function Home() {
   };
 
   const start = (b: Boss, color: 'w' | 'b') => {
+    unlockAudio(); // iOS chỉ cho phát âm thanh sau một cú chạm
     startGame(b.id, color);
     location.hash = '#/play';
   };

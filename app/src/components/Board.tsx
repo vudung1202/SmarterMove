@@ -20,6 +20,10 @@ interface Props {
   /** quân vừa đi trượt từ `from` tới `to` (nhập thành có 2 cặp); `slideKey` đổi thì chạy lại hiệu ứng */
   slides?: { from: string; to: string }[];
   slideKey?: string | number;
+  /** huy hiệu trên vua khi ván kết thúc */
+  kings?: { square: string; kind: 'win' | 'lose' | 'draw' }[];
+  /** quân rơi vào bàn khi bắt đầu ván */
+  intro?: boolean;
   label: string;
 }
 
@@ -37,7 +41,18 @@ function ArrowShape({ from, to, kind, flip }: Arrow & { flip: boolean }) {
   );
 }
 
-export function Board({ fen, marks = {}, arrows = [], onSquare, badge, orientation = 'w', coords = true, slides = [], slideKey, label }: Props) {
+/** Huy hiệu kết thúc trên vua: vương miện (thắng), # (bị chiếu hết/thua), ½ (hòa) — như Chess.com. */
+function KingBadge({ kind }: { kind: 'win' | 'lose' | 'draw' }) {
+  return (
+    <span className={`badge kbadge kbadge-${kind}`} title={kind === 'win' ? 'Thắng' : kind === 'lose' ? 'Thua' : 'Hòa'}>
+      {kind === 'win' ? (
+        <svg viewBox="0 0 16 16" width="64%" height="64%" fill="currentColor" aria-hidden="true"><path d="M2 5l3 3 3-5 3 5 3-3-1.2 7H3.2z" /></svg>
+      ) : kind === 'lose' ? '#' : '½'}
+    </span>
+  );
+}
+
+export function Board({ fen, marks = {}, arrows = [], onSquare, badge, orientation = 'w', coords = true, slides = [], slideKey, kings = [], intro = false, label }: Props) {
   const flip = orientation === 'b';
   // vị trí ô trên màn hình (cột, hàng), đã tính chiều lật bàn cờ
   const pos = (sq: string) => { const f = FILES.indexOf(sq[0]), r = 8 - Number(sq[1]); return flip ? [7 - f, 7 - r] : [f, r]; };
@@ -58,11 +73,11 @@ export function Board({ fen, marks = {}, arrows = [], onSquare, badge, orientati
           {p && (() => {
             const s = slides.find((x) => x.to === sq);
             const img = <img src={`pieces/${p.color}${p.type.toUpperCase()}.svg`} alt="" draggable={false} />;
-            if (!s) return <span className="piece">{img}</span>;
+            if (!s) return <span className="piece" style={intro ? ({ '--row': 7 - i } as CSSProperties) : undefined}>{img}</span>;
             const [fx, fy] = pos(s.from), [tx, ty] = pos(s.to);
             return <span key={slideKey} className="piece slide" style={{ '--dx': fx - tx, '--dy': fy - ty } as CSSProperties}>{img}</span>;
           })()}
-          {badge?.square === sq && <Badge cls={badge.cls} />}
+          {(() => { const k = kings.find((x) => x.square === sq); return k ? <KingBadge kind={k.kind} /> : badge?.square === sq && <Badge cls={badge.cls} />; })()}
         </>
       );
       cells.push(onSquare ? (
@@ -72,7 +87,7 @@ export function Board({ fen, marks = {}, arrows = [], onSquare, badge, orientati
     }
   }
   return (
-    <div className="board" role={onSquare ? 'grid' : 'img'} aria-label={label}>
+    <div className={`board${intro ? ' intro' : ''}`} role={onSquare ? 'grid' : 'img'} aria-label={label}>
       {cells}
       <svg className="arrows" viewBox="0 0 8 8" aria-hidden="true">
         {arrows.map((a) => <ArrowShape key={a.from + a.to + a.kind} {...a} flip={flip} />)}

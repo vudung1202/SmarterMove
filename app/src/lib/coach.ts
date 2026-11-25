@@ -91,12 +91,12 @@ export function isSacrifice(fen: string, pv: string[]): boolean {
 }
 
 /**
- * Loại cuối của một nước: sách khai cuộc > xuất sắc > các mức theo độ tụt điểm.
+ * Loại cuối của một nước: sách khai cuộc (trừ khi là sai lầm/lỗi lớn) > xuất sắc > các mức theo độ tụt điểm.
  * Xuất sắc = nước tốt nhất/rất tốt + thí quân, khi trước đó chưa thắng áp đảo (< +4) và sau đó không bị bất lợi (≥ −0,5).
  */
 export function gradeClass(o: { before: number; after: number; isBest: boolean; isBook: boolean; sacrifice: boolean }): MoveClass {
-  if (o.isBook) return 'book';
   const cls = classify(o.before, o.after, o.isBest);
+  if (o.isBook) return cls === 'mistake' || cls === 'blunder' ? cls : 'book';
   if ((cls === 'best' || cls === 'excellent') && o.sacrifice && o.before < 4 && o.after >= -0.5) return 'brilliant';
   return cls;
 }

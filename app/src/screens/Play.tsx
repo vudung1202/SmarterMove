@@ -1,5 +1,5 @@
 import { Chess, type Move, type PieceSymbol, type Square } from 'chess.js';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Boss } from '../bosses.ts';
 import { Badge } from '../components/Badge.tsx';
 import { Board, type Arrow } from '../components/Board.tsx';
@@ -7,10 +7,12 @@ import { EvalBar } from '../components/EvalBar.tsx';
 import { NewGameSheet } from '../components/NewGameSheet.tsx';
 import { ANALYSIS, Engine, HINT_GO } from '../engine/engine.ts';
 import { bookName } from '../lib/book.ts';
+import { cap, describeMove, threatened } from '../lib/commentary.ts';
 import { consequence, gradeClass, isSacrifice, MOVE_CLASS, PIECE_VI, sanOf, toPawns, viSan, winPercent, type MoveClass, type PieceType } from '../lib/coach.ts';
 import { putGame } from '../lib/history.ts';
 import type { Result } from '../lib/progress.ts';
 import { loadGame, saveGame, startGame, type Color, type Grade } from '../lib/saved-game.ts';
+import { setSoundOn, soundOn, sounds, unlockAudio } from '../lib/sound.ts';
 
 type Phase = 'loading' | 'error' | 'you' | 'thinking' | 'over';
 /** Phân tích thế cờ hiện tại (lượt người chơi). pawns theo góc người chơi; pv bắt đầu bằng nước máy chọn. */
@@ -21,6 +23,15 @@ const uciMove = (u: string) => ({ from: u.slice(0, 2), to: u.slice(2, 4), promot
 const GRADE_GO = 'movetime 400';
 const BAD: MoveClass[] = ['inaccuracy', 'mistake', 'blunder'];
 const PROMO: PieceSymbol[] = ['q', 'r', 'b', 'n'];
+// Pháo giấy khi thắng: 28 mảnh, hướng/độ xoay/màu cố định theo chỉ số (không ngẫu nhiên để mỗi lần trông như nhau)
+const CONFETTI_COLORS = ['#1d5fbf', '#f7de3a', '#2e7d32', '#141414', '#c4242a'];
+const CONFETTI = Array.from({ length: 28 }, (_, i) => {
+  const a = (i / 28) * Math.PI * 2, spread = 90 + (i % 5) * 22;
+  return {
+    '--x': `${Math.round(Math.cos(a) * spread)}px`, '--up': `${-60 - (i % 4) * 18}px`, '--y': `${170 + (i % 6) * 22}px`,
+    '--r': `${(i % 2 ? 1 : -1) * (360 + i * 25)}deg`, '--d': `${0.6 + (i % 7) * 0.03}s`, '--c': CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  } as CSSProperties;
+});
 
 function material(fen: string) {
   const v: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
@@ -74,6 +85,20 @@ export function Play({ boss }: { boss: Boss }) {
   const [menu, setMenu] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [over, setOver] = useState(init?.over ?? '');
+  // Xem lại thế cờ cũ trong lúc chơi: chỉ số nửa nước (−1 = thế cờ ban đầu); null = thế cờ hiện tại
+  const [view, setView] = useState<number | null>(null);
+  const [openingName, setOpeningName] = useState('');
+  const movesRef = useRef<HTMLOListElement>(null);
+  // Hiệu ứng: quân rơi vào bàn khi ván mới bắt đầu; thẻ kết quả khi ván vừa kết thúc (không hiện lại khi mở ván đã xong)
+  const [intro, setIntro] = useState(() => !!init && !init.sans.length && !init.over);
+  const [endCard, setEndCard] = useState(false);
+  const [sound, setSound] = useState(soundOn);
+  useEffect(() => {
+    if (!intro) return;
+    sounds.start();
+    const t = setTimeout(() => setIntro(false), 1800);
+    return () => clearTimeout(t);
+  }, [intro]);
 
   // Lưu sau mỗi thay đổi của ván; ván kết thúc thì ghi thêm vào lịch sử (ghi đè theo id nên gọi lại không sao)
   useEffect(() => {
@@ -92,15 +117,21 @@ export function Play({ boss }: { boss: Boss }) {
     const m = h.at(-1);
     setSlide(m && h.length === drawnLen.current + 1 ? { key: h.length, moves: slidesOf(m) } : null);
     drawnLen.current = h.length;
+    setView(null);
     setFen(game.fen());
     setHistory(h);
   };
 
-  const finish = (text: string, res: Result) => {
+  /** Kết thúc ván. `live` = vừa xảy ra trong lúc chơi (có âm thanh, thẻ kết quả); false khi mở lại ván đã xong. */
+  const finish = (text: string, res: Result, live = true) => {
     gen.current++;
     setOver(text);
     setResult(res);
     setPhase('over');
+    if (!live) return;
+    setIntro(false);
+    setEndCard(true);
+    sounds[res === 'win' ? 'win' : res === 'loss' ? 'lose' : 'draw']();
   };
 
   const analyse = () => {
@@ -148,7 +179,7 @@ export function Play({ boss }: { boss: Boss }) {
       e.newGame();
       void bookName(game.fen()); // tải trước dữ liệu sách khai cuộc
       if (init?.over) setPhase('over');
-      else if (game.isGameOver()) finish(overText(game, boss.name, meRef.current), outcome(game, meRef.current));
+      else if (game.isGameOver()) finish(overText(game, boss.name, meRef.current), outcome(game, meRef.current), false);
       else begin();
     } catch (err) {
       setError((err as Error).message);
@@ -189,7 +220,7 @@ export function Play({ boss }: { boss: Boss }) {
     if (a) {
       const isBest = a.best === move.lan;
       let after = a.pawns, pv = a.pv, why: string | null = null;
-      if (!isBest && !opening) {
+      if (!isBest) { // nước sách cũng chấm: biến bẫy trong sách (như Fool's Mate) vẫn là lỗi
         const r = await e.search(game.fen(), ANALYSIS, GRADE_GO);
         if (gen.current !== my) return;
         if (r.info?.score) {
@@ -199,7 +230,9 @@ export function Play({ boss }: { boss: Boss }) {
         }
       }
       const cls = gradeClass({ before: a.pawns, after, isBest, isBook: !!opening, sacrifice: !opening && isSacrifice(before, pv) });
-      const text = cls === 'book' ? `${opening}.` : cls === 'brilliant' ? 'Thí quân mà thế cờ vẫn tốt cho bạn.' : BAD.includes(cls) ? why : null;
+      const facts = describeMove(before, move.san);
+      const text = cls === 'book' ? `${opening}.${facts.length ? ` ${cap(facts.join(', '))}.` : ''}`
+        : cls === 'brilliant' ? 'Thí quân mà thế cờ vẫn tốt cho bạn.' : BAD.includes(cls) ? why : facts.length ? `${facts.join(', ')}.` : null;
       setGrades((gr) => ({ ...gr, [ply]: { cls, text } }));
       setEvalPawns(after);
     }
@@ -207,6 +240,7 @@ export function Play({ boss }: { boss: Boss }) {
   };
 
   const onSquare = (sq: string) => {
+    unlockAudio();
     if (phase !== 'you') return;
     setPromo(null);
     const p = game.get(sq as Square);
@@ -220,6 +254,24 @@ export function Play({ boss }: { boss: Boss }) {
 
   const askHint = () => setHint((h) => (h === 0 ? 1 : 2));
 
+  // Tên khai cuộc gần nhất (như dòng "Caro-Kann Defense" trên Chess.com): lùi từ thế cờ hiện tại tới thế cờ có tên
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      for (let i = history.length - 1; i >= Math.max(0, history.length - 40); i--) {
+        const name = await bookName(history[i].after);
+        if (name) { if (alive) setOpeningName(name); return; }
+      }
+      if (alive) setOpeningName('');
+    })();
+    return () => { alive = false; };
+  }, [history]);
+
+  // Giữ nước đang xem (hoặc nước mới nhất) trong tầm nhìn của danh sách nước
+  useEffect(() => {
+    movesRef.current?.querySelector('.cur')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [history, view]);
+
   const undo = () => {
     gen.current++;
     engine.current!.stop();
@@ -227,11 +279,12 @@ export function Play({ boss }: { boss: Boss }) {
     if (game.turn() !== meRef.current) game.undo(); // về lượt người chơi
     const n = game.history().length;
     setGrades((gr) => Object.fromEntries(Object.entries(gr).filter(([k]) => Number(k) < n)));
-    sync(); setHint(0); setSel(null); setPromo(null); setOver(''); setResult(undefined);
+    sync(); setHint(0); setSel(null); setPromo(null); setOver(''); setResult(undefined); setEndCard(false);
     begin(); // cầm Đen mà lùi về đầu ván thì boss đi lại nước đầu
   };
 
   const newGame = (me: Color) => {
+    unlockAudio();
     setGameId(startGame(boss.id, me).id);
     gen.current++;
     engine.current!.stop();
@@ -240,6 +293,7 @@ export function Play({ boss }: { boss: Boss }) {
     meRef.current = me;
     setColor(me);
     sync(); setHint(0); setSel(null); setPromo(null); setOver(''); setResult(undefined); setGrades({}); setEvalPawns(null); setMenu(false); setSheet(false);
+    setEndCard(false); setIntro(true);
     begin();
   };
 
@@ -252,19 +306,35 @@ export function Play({ boss }: { boss: Boss }) {
   const badgeHidden = myPly < history.length - 1 && last?.to === history[myPly]?.to;
   const marks: Record<string, string[]> = {};
   const add = (sq: string, c: string) => (marks[sq] = [...(marks[sq] ?? []), c]);
-  if (last) { add(last.from, 'last'); add(last.to, 'last'); }
-  if (sel && phase === 'you') {
+  const viewing = view !== null;
+  const shown = viewing ? (view >= 0 ? history[view] : undefined) : last; // nước tô vàng
+  if (shown) { add(shown.from, 'last'); add(shown.to, 'last'); }
+  if (sel && phase === 'you' && !viewing) {
     add(sel, 'sel');
     for (const m of new Chess(fen).moves({ square: sel as Square, verbose: true })) add(m.to, m.captured ? 'cap' : 'dot');
   }
   const arrows: Arrow[] = [];
-  if (phase === 'you' && analysis && hint >= 1) add(analysis.best.slice(0, 2), 'hint');
-  if (phase === 'you' && analysis && hint === 2) arrows.push({ from: analysis.best.slice(0, 2), to: analysis.best.slice(2, 4), kind: 'coach' });
+  if (phase === 'you' && analysis && hint >= 1 && !viewing) add(analysis.best.slice(0, 2), 'hint');
+  if (phase === 'you' && analysis && hint === 2 && !viewing) arrows.push({ from: analysis.best.slice(0, 2), to: analysis.best.slice(2, 4), kind: 'coach' });
 
   const gradeText: ReactNode = myGrade ? <><Badge cls={myGrade.cls} inline />{MOVE_CLASS[myGrade.cls].label}{myGrade.text ? `: ${myGrade.text}` : '.'}</> : null;
-  const turnLine = last && !mine(history.length - 1) ? `${boss.name} vừa đi ${viSan(last.san)}. Lượt bạn.` : 'Lượt bạn.';
+  // Lời coach cho nước của boss: boss vừa làm gì, và quân nào của bạn đang bị đe dọa
+  const bossFacts = last && !mine(history.length - 1) ? describeMove(last.before, last.san) : [];
+  const danger = phase === 'you' ? threatened(new Chess(fen), color)[0] : undefined;
+  const turnLine = [
+    last && !mine(history.length - 1) ? `${boss.name} vừa đi ${viSan(last.san)}${bossFacts.length ? `: ${bossFacts.join(', ')}` : ''}.` : '',
+    danger ? `Chú ý: ${PIECE_VI[danger.type]} ở ${danger.square} của bạn đang bị đe dọa.` : '',
+    'Lượt bạn.',
+  ].filter(Boolean).join(' ');
+  const badMove = myGrade && (myGrade.cls === 'mistake' || myGrade.cls === 'blunder');
   let text: ReactNode, sub: ReactNode = null, tone = 'plain', actions: ReactNode = null;
-  if (phase === 'loading') { text = 'Đang tải engine (1,8 MB)…'; tone = 'wait'; }
+  if (viewing) {
+    const m = view >= 0 ? history[view] : null;
+    text = m ? `Đang xem nước ${Math.floor(view / 2) + 1}${view % 2 ? '…' : '.'} ${viSan(m.san)} (${mine(view) ? 'bạn' : boss.name})` : 'Đang xem thế cờ ban đầu';
+    const g = m ? grades[view] : undefined;
+    sub = g ? <><Badge cls={g.cls} inline />{MOVE_CLASS[g.cls].label}{g.text ? `: ${g.text}` : '.'}</> : null;
+    actions = <button type="button" className="btn primary" onClick={() => setView(null)}>Về thế cờ hiện tại</button>;
+  } else if (phase === 'loading') { text = 'Đang tải engine (1,8 MB)…'; tone = 'wait'; }
   else if (phase === 'error') {
     text = `Không tải được engine: ${error}`; tone = 'error';
     actions = <button type="button" className="btn secondary" onClick={() => { setPhase('loading'); void startEngine(); }}>Tải lại engine</button>;
@@ -280,10 +350,33 @@ export function Play({ boss }: { boss: Boss }) {
     text = `Gợi ý: tìm nước cho ${p ? PIECE_VI[p.type as PieceType] : 'quân'} ở ${analysis.best.slice(0, 2)}.`; tone = 'coach';
   } else if (hint === 2 && analysis) {
     text = `Nước máy chọn: ${viSan(analysis.bestSan)}.${analysis.replySan ? ` ${boss.name} có thể đáp ${viSan(analysis.replySan)}.` : ''}`; tone = 'coach';
-  } else if (gradeText) { text = gradeText; sub = turnLine; }
+  } else if (gradeText) {
+    text = gradeText; sub = turnLine;
+    if (badMove && hint === 0) actions = <>
+      <button type="button" className="btn primary" onClick={undo}>Đi lại</button>
+      <button type="button" className="btn secondary" onClick={() => { undo(); setHint(2); }}>Xem nước tốt hơn</button>
+    </>;
+  }
   else text = history.length ? turnLine : `Lượt bạn. Bạn cầm ${color === 'w' ? 'Trắng, đi trước' : 'Đen'}.`;
 
-  const keep = history.length - 1 - ((history.length - 1) % 2) - 4;
+  // Kết thúc ván: huy hiệu trên hai vua, ô vua bị chiếu hết nhấp nháy, thẻ kết quả
+  const fenGame = new Chess(fen);
+  const mate = fenGame.isCheckmate();
+  const kingSq = (c: Color) => fenGame.findPiece({ type: 'k', color: c })[0];
+  const opp: Color = color === 'w' ? 'b' : 'w';
+  const kings: { square: string; kind: 'win' | 'lose' | 'draw' }[] = phase !== 'over' || !result ? []
+    : result === 'draw' ? [{ square: kingSq('w'), kind: 'draw' }, { square: kingSq('b'), kind: 'draw' }]
+      : [{ square: kingSq(color), kind: result === 'win' ? 'win' : 'lose' }, { square: kingSq(opp), kind: result === 'win' ? 'lose' : 'win' }];
+  if (phase === 'over' && mate) add(kingSq(fenGame.turn()), 'mated');
+  const n = Math.ceil(history.length / 2);
+  const endTitle = result === 'win' ? 'Bạn thắng!' : result === 'loss' ? 'Bạn thua' : 'Hòa';
+  const endSub = mate ? (result === 'win' ? `Chiếu hết sau ${n} nước` : `${boss.name} chiếu hết sau ${n} nước`)
+    : result === 'loss' ? 'Bạn đã bỏ ván'
+      : fenGame.isStalemate() ? 'Bên đi không còn nước hợp lệ' : game.isThreefoldRepetition() ? 'Lặp lại thế cờ ba lần'
+        : fenGame.isInsufficientMaterial() ? 'Không đủ quân để chiếu hết' : 'Luật 50 nước';
+  const score = result === 'win' ? '1 – 0' : result === 'loss' ? '0 – 1' : '½ – ½';
+  const bossPiece = boss.piece.replace(/^./, color === 'w' ? 'b' : 'w');
+
   const diff = color === 'w' ? material(fen) : -material(fen); // theo phía người chơi
   const canUndo = (phase === 'you' || phase === 'over') && history.some((_, i) => mine(i));
   const inProgress = phase !== 'over' && history.length > 0;
@@ -292,16 +385,35 @@ export function Play({ boss }: { boss: Boss }) {
     <div className="play" data-phase={phase}>
       <div className="play-main">
         <div className="player opp">
-          <span className="avatar xs"><img src={`pieces/${boss.piece.replace(/^./, color === 'w' ? 'b' : 'w')}.svg`} alt="" /></span>
+          <span className="avatar xs"><img src={`pieces/${bossPiece}.svg`} alt="" /></span>
           <span className="pname">{boss.name}</span>
           {diff < 0 && <span className="mat num">+{-diff}</span>}
           {phase === 'thinking' && <span className="thinking">đang nghĩ…</span>}
         </div>
         <div className="board-wrap">
           <EvalBar pawns={evalPawns} me={color} />
-          <Board fen={fen} marks={marks} arrows={arrows} onSquare={onSquare} orientation={color} label={`Bàn cờ, ván với ${boss.name}`}
-            slides={slide?.moves} slideKey={slide?.key}
-            badge={myGrade && !badgeHidden ? { square: history[myPly].to, cls: myGrade.cls } : null} />
+          <Board key={gameId} fen={viewing ? (view >= 0 ? history[view].after : new Chess().fen()) : fen} marks={marks} arrows={viewing ? [] : arrows}
+            onSquare={viewing ? undefined : onSquare} orientation={color} label={`Bàn cờ, ván với ${boss.name}`}
+            slides={viewing ? [] : slide?.moves} slideKey={slide?.key} kings={viewing ? [] : kings} intro={intro}
+            badge={viewing ? (view >= 0 && grades[view] ? { square: history[view].to, cls: grades[view].cls } : null)
+              : myGrade && !badgeHidden ? { square: history[myPly].to, cls: myGrade.cls } : null} />
+          {intro && <div className="intro-chip" role="status">Bắt đầu! Bạn cầm {color === 'w' ? 'Trắng, đi trước' : 'Đen'}</div>}
+          {endCard && phase === 'over' && (
+            <div className={`endcard end-${result ?? 'draw'}`} role="dialog" aria-label="Kết quả ván">
+              {result === 'win' && <div className="confetti" aria-hidden="true">{CONFETTI.map((c, i) => <i key={i} style={c} />)}</div>}
+              <p className="end-title">{endTitle}</p>
+              <p className="end-sub">{endSub}</p>
+              <div className="end-players">
+                <span className="end-p"><img src={`pieces/${color}K.svg`} alt="" />Bạn</span>
+                <b className="num end-score">{score}</b>
+                <span className="end-p"><img src={`pieces/${bossPiece}.svg`} alt="" />{boss.name}</span>
+              </div>
+              <div className="end-actions">
+                <button type="button" className="btn primary" onClick={() => setSheet(true)}>Ván mới</button>
+                <button type="button" className="btn secondary" onClick={() => setEndCard(false)}>Xem bàn cờ</button>
+              </div>
+            </div>
+          )}
           {promo && (
             <div className="promo" role="dialog" aria-label="Chọn quân phong cấp">
               {PROMO.map((t) => (
@@ -333,6 +445,9 @@ export function Play({ boss }: { boss: Boss }) {
             {menu && (
               <div className="menu" role="menu">
                 <button type="button" className="menu-item" onClick={() => { setMenu(false); setSheet(true); }}>Ván mới</button>
+                <label className="menu-item"><span>Âm thanh</span>
+                  <input type="checkbox" className="switch" checked={sound}
+                    onChange={(e) => { setSound(e.target.checked); setSoundOn(e.target.checked); if (e.target.checked) { unlockAudio(); sounds.start(); } }} /></label>
                 <button type="button" className="menu-item danger" disabled={phase === 'over'}
                   onClick={() => { if (confirm(`Bỏ ván với ${boss.name}? Ván sẽ tính là thua.`)) { setMenu(false); finish('Bạn đã bỏ ván.', 'loss'); } }}>Bỏ ván này</button>
                 <a className="menu-item" href="#/bench">Đo engine trên máy này</a>
@@ -341,17 +456,35 @@ export function Play({ boss }: { boss: Boss }) {
           </div>
         </header>
         <section className={`coach tone-${tone}`} aria-live="polite">
-          <p className="coach-text">{text}</p>
-          {sub && <p className="coach-sub muted">{sub}</p>}
-          {actions && <div className="coach-actions">{actions}</div>}
+          <img className="coach-avatar" src="icons/icon.svg" alt="Coach" width="36" height="36" />
+          <div className="coach-bubble">
+            <p className="coach-text">{text}</p>
+            {sub && <p className="coach-sub muted">{sub}</p>}
+            {actions && <div className="coach-actions">{actions}</div>}
+          </div>
         </section>
         <section className="moves-panel" aria-label="Các nước đã đi">
-          <ol className="moves">
+          <header className="moves-head">
+            <span className="opening">{openingName || (history.length ? 'Ngoài sách khai cuộc' : 'Thế cờ ban đầu')}</span>
+            <span className="moves-nav">
+              <button type="button" className="icon-btn sm" aria-label="Nước trước" disabled={(view ?? history.length - 1) < 0}
+                onClick={() => setView((view ?? history.length - 1) - 1)}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+              </button>
+              <button type="button" className="icon-btn sm" aria-label="Nước sau" disabled={!viewing}
+                onClick={() => setView(view! + 1 >= history.length - 1 ? null : view! + 1)}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </span>
+          </header>
+          <ol className="moves" ref={movesRef}>
             {history.map((m, i) => [
-              i % 2 === 0 && <li key={`n${i}`} className={`mn num${i < keep ? ' old' : ''}`}>{i / 2 + 1}.</li>,
-              <li key={i} className={`mv${i === history.length - 1 ? ' cur' : ''}${i < keep ? ' old' : ''}`}>
-                {viSan(m.san)}
-                {grades[i] && (BAD.includes(grades[i].cls) || grades[i].cls === 'brilliant') && <span className={`mglyph c-${grades[i].cls}`}>{MOVE_CLASS[grades[i].cls].glyph}</span>}
+              i % 2 === 0 && <li key={`n${i}`} className="mn num">{i / 2 + 1}.</li>,
+              <li key={i} className={`mv${(viewing ? view === i : i === history.length - 1) ? ' cur' : ''}`}>
+                <button type="button" onClick={() => setView(i === history.length - 1 ? null : i)}>
+                  {viSan(m.san)}
+                  {grades[i] && <Badge cls={grades[i].cls} mini />}
+                </button>
               </li>,
             ])}
           </ol>

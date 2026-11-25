@@ -62,7 +62,8 @@ test('isSacrifice: thí tượng h7 thì có, đổi mã ngang giá thì không'
 });
 
 test('gradeClass: sách khai cuộc và xuất sắc', () => {
-  assert.equal(gradeClass({ before: 0.3, after: -3, isBest: false, isBook: true, sacrifice: false }), 'book');
+  assert.equal(gradeClass({ before: 0.3, after: 0.1, isBest: false, isBook: true, sacrifice: false }), 'book');
+  assert.equal(gradeClass({ before: 0.3, after: -3, isBest: false, isBook: true, sacrifice: false }), 'blunder'); // bẫy trong sách vẫn là lỗi
   assert.equal(gradeClass({ before: 0.5, after: 0.5, isBest: true, isBook: false, sacrifice: true }), 'brilliant');
   assert.equal(gradeClass({ before: 6, after: 6, isBest: true, isBook: false, sacrifice: true }), 'best'); // đã thắng áp đảo
   assert.equal(gradeClass({ before: 0.5, after: -2, isBest: false, isBook: false, sacrifice: true }), 'blunder');

@@ -166,3 +166,13 @@ Theo yêu cầu sau khi chơi thử: **không chặn nước**. Nước đi đư
 | Báo trạng thái | Màn Chọn đối thủ ghi "Đã sẵn sàng chơi offline" khi service worker đã lưu xong, và xin `navigator.storage.persist()` để trình duyệt không tự xóa dữ liệu. |
 | Xuất PGN | Nút "Xuất PGN" ở khối Ván gần đây: trên iPhone mở bảng Chia sẻ, máy khác tải file `.pgn` về. |
 | Kiểm tra | `node tools/check-offline.mjs`: chờ báo sẵn sàng, tắt server, tải lại trang, rồi đấu một nước. |
+
+## 12. Hiệu ứng ván, lời coach, lịch sử nước
+
+| Phần | Logic |
+|---|---|
+| Bắt đầu ván | Quân rơi vào bàn (hàng gần người chơi trước), chip "Bắt đầu! Bạn cầm …" hiện 1,8 giây, có tiếng chuông. Chỉ chạy với ván mới, không chạy khi mở lại ván dở. |
+| Kết thúc ván | Ô vua bị chiếu hết nhấp nháy đỏ; huy hiệu trên vua: vương miện (thắng), # (thua), ½ (hòa). Thẻ kết quả (thắng/thua/hòa, lý do, tỉ số, Ván mới / Xem bàn cờ), pháo giấy khi thắng. Âm thanh tự tổng hợp bằng Web Audio, bật/tắt trong menu. |
+| Lời coach | `describeMove()` đọc các ý từ bàn cờ: nhập thành, phong cấp, bắt quân, ra quân mã/tượng, chiếm trung tâm, chiếu, tấn công/chĩa đôi quân bị đe dọa. `threatened()`: quân bị tấn công mà không ai bảo vệ, hoặc bị quân rẻ hơn tấn công. Sau nước của boss coach nói boss vừa làm gì, và cảnh báo quân của bạn đang bị đe dọa. Nước sách giờ vẫn được engine chấm (bẫy như Fool's Mate vẫn là lỗi). |
+| Sau nước sai | Khi là Sai lầm/Lỗi lớn: hai nút **Đi lại** và **Xem nước tốt hơn** (đi lại rồi hiện mũi tên nước máy chọn). |
+| Lịch sử nước | Tên khai cuộc gần nhất trên đầu danh sách; huy hiệu nhỏ cạnh từng nước của bạn; bấm một nước hoặc nút ‹ › để xem lại thế cờ cũ (bàn cờ khóa, coach nói đang xem nước nào), "Về thế cờ hiện tại" để quay lại. Trên điện thoại danh sách cuộn ngang được. |
