@@ -149,6 +149,25 @@ export function Home() {
                   })}
                 </tbody>
               </table>
+              {/* điện thoại: mỗi ván là một dòng 2 tầng, chạm cả dòng để xem lại */}
+              <ul className="recent-list">
+                {games.slice(0, 5).map((g) => {
+                  const b = bossById(g.bossId);
+                  return (
+                    <li key={g.id}>
+                      <a href={`#/review/${encodeURIComponent(g.id)}`}>
+                        <span className="avatar xs"><img src={`pieces/${b.piece}.svg`} alt="" /></span>
+                        <span className="rl-main">
+                          <b>{b.name}</b>
+                          <span className="muted">{dayText(g.endedAt)} · {g.color === 'w' ? 'Trắng' : 'Đen'} · {Math.ceil(g.sans.length / 2)} nước</span>
+                        </span>
+                        <span className={`res ${RESULT[g.result][1]}`}>{RESULT[g.result][0]}</span>
+                        <span className="rl-go" aria-label="Xem lại">Xem lại</span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           ) : <p className="empty">Chưa có ván nào. Thắng {PROMOTE.wins} trong {PROMOTE.window} ván với một boss để mở boss tiếp theo.</p>}
         </section>

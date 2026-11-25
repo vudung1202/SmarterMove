@@ -453,3 +453,18 @@ a.menu-item { color: var(--text); }
 .ec-cur { stroke: var(--text); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .end-actions { grid-template-columns: 1fr 1fr; }
 .end-close { grid-column: 1 / -1; height: 36px !important; }
+
+/* Ván gần đây trên điện thoại: bảng chật chữ bị gãy dòng → danh sách 2 tầng */
+.recent-list { display: none; }
+@media (max-width: 640px) {
+  .recent table { display: none; }
+  .recent-list { display: grid; }
+  .recent-list li + li { border-top: 1px solid var(--rule); }
+  .recent-list a { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 0; }
+  .recent-list .avatar.xs { width: 28px; height: 28px; }
+  .rl-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .rl-main b { font-weight: 500; }
+  .rl-main .muted { font-size: var(--fs-small); }
+  .rl-go { display: inline-flex; align-items: center; font-weight: 500; white-space: nowrap; }
+  .rl-go::after { content: ""; width: 12px; height: 12px; background: currentColor; -webkit-mask: var(--chevron) center / 12px no-repeat; mask: var(--chevron) center / 12px no-repeat; }
+}
