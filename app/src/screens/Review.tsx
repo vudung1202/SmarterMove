@@ -13,7 +13,7 @@ import { BAD, backfill, fensOf, isMine, keyMoments, missingPositions } from '../
 type Sel = { kind: 'moment'; ply: number } | { kind: 'ply'; ply: number }; // ply −1 = thế cờ ban đầu
 interface Retry { ply: number; sel: string | null; tried: Move | null; busy: boolean; msg: string; ok: boolean; showBest: boolean }
 
-const ORDER: MoveClass[] = ['brilliant', 'best', 'excellent', 'good', 'book', 'inaccuracy', 'mistake', 'blunder'];
+const ORDER: MoveClass[] = ['brilliant', 'great', 'best', 'excellent', 'good', 'book', 'inaccuracy', 'mistake', 'blunder'];
 const uciArrow = (u: string, kind: Arrow['kind']): Arrow => ({ from: u.slice(0, 2), to: u.slice(2, 4), kind });
 const dateText = (iso: string) => { const d = new Date(iso); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`; };
 

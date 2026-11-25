@@ -19,9 +19,10 @@ export const wc = (pawns: number) => 2 / (1 + Math.exp(-0.368208 * pawns)) - 1;
 /** Cơ hội thắng 0..100% (thắng + nửa hòa) theo góc người chơi. */
 export const winPercent = (pawns: number) => Math.round(((wc(pawns) + 1) / 2) * 100);
 
-export type MoveClass = 'brilliant' | 'book' | 'best' | 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
+export type MoveClass = 'brilliant' | 'great' | 'book' | 'best' | 'excellent' | 'good' | 'inaccuracy' | 'mistake' | 'blunder';
 export const MOVE_CLASS: Record<MoveClass, { label: string; glyph: string }> = {
   brilliant: { label: 'Xuất sắc', glyph: '!!' },
+  great: { label: 'Nước hay', glyph: '!' },
   book: { label: 'Nước sách', glyph: '' }, // icon quyển sách vẽ bằng SVG
   best: { label: 'Nước tốt nhất', glyph: '★' },
   excellent: { label: 'Rất tốt', glyph: '✓' },
@@ -35,7 +36,7 @@ export const MOVE_CLASS: Record<MoveClass, { label: string; glyph: string }> = {
  * Xếp loại nước theo mức tụt winning chances (thang −1..1, ngưỡng lỗi như Lichess).
  * `before`: điểm trước nước (= sau nước máy chọn), `after`: điểm sau nước; cùng góc người vừa đi.
  */
-export function classify(before: number, after: number, isBest: boolean): Exclude<MoveClass, 'brilliant' | 'book'> {
+export function classify(before: number, after: number, isBest: boolean): Exclude<MoveClass, 'brilliant' | 'great' | 'book'> {
   if (isBest) return 'best';
   const drop = wc(before) - wc(after);
   if (drop >= 0.3) return 'blunder';
@@ -93,10 +94,12 @@ export function isSacrifice(fen: string, pv: string[]): boolean {
 /**
  * Loại cuối của một nước: sách khai cuộc (trừ khi là sai lầm/lỗi lớn) > xuất sắc > các mức theo độ tụt điểm.
  * Xuất sắc = nước tốt nhất/rất tốt + thí quân, khi trước đó chưa thắng áp đảo (< +4) và sau đó không bị bất lợi (≥ −0,5).
+ * Nước hay = nước tốt nhất và là nước duy nhất giữ được thế cờ (`onlyMove`: nước tốt thứ hai tụt ≥ 0,25 winning chances).
  */
-export function gradeClass(o: { before: number; after: number; isBest: boolean; isBook: boolean; sacrifice: boolean }): MoveClass {
+export function gradeClass(o: { before: number; after: number; isBest: boolean; isBook: boolean; sacrifice: boolean; onlyMove?: boolean }): MoveClass {
   const cls = classify(o.before, o.after, o.isBest);
   if (o.isBook) return cls === 'mistake' || cls === 'blunder' ? cls : 'book';
   if ((cls === 'best' || cls === 'excellent') && o.sacrifice && o.before < 4 && o.after >= -0.5) return 'brilliant';
+  if (cls === 'best' && o.onlyMove) return 'great';
   return cls;
 }

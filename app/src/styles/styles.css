@@ -335,6 +335,7 @@ body[data-route="play"] .canvas, body[data-route="bench"] .canvas { min-height: 
 
 /* ---------- Mốc 2: cầm Đen, phong cấp, ván mới, xuất sắc/sách ---------- */
 .badge-brilliant { background: #138a8a; }
+.badge-great { background: var(--coach); }
 .badge-book { background: #8a6a4a; }
 .c-brilliant { color: #0f766e; }
 .evalbar.me-b { background: #fff; }

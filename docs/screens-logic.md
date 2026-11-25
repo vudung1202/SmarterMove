@@ -186,3 +186,12 @@ Theo yêu cầu sau khi chơi thử: **không chặn nước**. Nước đi đư
 | Khoảnh khắc | `keyMoments()`: tối đa 3 nước Chưa chính xác/Sai lầm/Lỗi lớn của người chơi, tụt nhiều winning chances nhất, xếp theo thứ tự ván. Bàn cờ hiện thế cờ trước nước đó: mũi tên đỏ (nước đã đi), mũi tên xanh (nước máy chọn), điểm trước → sau, lời coach. |
 | Đồ thị | Đường điểm cả ván (góc người chơi, kẹp ±10), vạch đỏ ở 3 khoảnh khắc, vạch đen ở nước đang xem; chạm để nhảy tới nước đó. |
 | Thử lại | Bàn cờ mở khóa ở thế cờ trước nước sai. Người chơi đi một nước, engine chấm 0,8 giây: tốt nhất → "Đúng nước máy chọn!", không phải nước kém → "Đúng hướng", nước kém → câu hậu quả. Có nút Thử lại / Xem nước máy chọn / Thoát. Ván gốc không đổi. |
+
+## 14. Coach giải thích sâu hơn và "Nước hay !"
+
+| Phần | Logic |
+|---|---|
+| Nhận xét vị trí | `positionalNotes()`: điểm cộng (tạo tốt thông) và điểm trừ (tốt chồng, tốt cô lập, làm yếu hàng tốt che vua đã nhập thành; trong 20 nửa nước đầu: ra hậu sớm, đi vua mất quyền nhập thành, mã ra biên, đi lại quân đã ra khi mã/tượng khác còn ở nhà). Điểm trừ chỉ hiện với nước Chưa chính xác trở xuống. |
+| Nước tốt hơn | Kèm lý do của nước máy chọn, ví dụ "Nước tốt hơn: O-O (nhập thành, đưa vua vào chỗ an toàn)". Nước Chưa chính xác giải thích bằng điểm trừ vị trí; nếu không có thì dùng câu hậu quả. |
+| Kế hoạch | `planTip()` ở lượt người chơi khi không có quân bị đe dọa: ra nốt mã/tượng còn ở nhà (từ nửa nước 6), rồi nhập thành (từ nửa nước 8). |
+| Nước hay ! | Khi người chơi đi đúng nước máy chọn (không phải nước sách): tìm nước tốt thứ hai bằng `go movetime 300 searchmoves <mọi nước khác>`. Nếu nước đó tụt ≥ 0,25 winning chances (và thế cờ chưa thua hẳn) thì nước vừa đi là nước duy nhất giữ được thế cờ. Xuất sắc (thí quân) vẫn xếp trên. |

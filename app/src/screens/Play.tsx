@@ -7,8 +7,8 @@ import { EvalBar } from '../components/EvalBar.tsx';
 import { NewGameSheet } from '../components/NewGameSheet.tsx';
 import { ANALYSIS, Engine, HINT_GO } from '../engine/engine.ts';
 import { bookName } from '../lib/book.ts';
-import { cap, describeMove, threatened } from '../lib/commentary.ts';
-import { consequence, gradeClass, isSacrifice, MOVE_CLASS, PIECE_VI, sanOf, toPawns, viSan, winPercent, type MoveClass, type PieceType } from '../lib/coach.ts';
+import { cap, describeMove, planTip, positionalNotes, threatened } from '../lib/commentary.ts';
+import { consequence, gradeClass, isSacrifice, MOVE_CLASS, PIECE_VI, sanOf, toPawns, viSan, wc, winPercent, type MoveClass, type PieceType } from '../lib/coach.ts';
 import { putGame } from '../lib/history.ts';
 import type { Result } from '../lib/progress.ts';
 import { loadGame, saveGame, startGame, type Color, type Grade } from '../lib/saved-game.ts';
@@ -178,24 +178,27 @@ export function Play({ boss }: { boss: Boss }) {
     if (game.turn() === meRef.current) { setPhase('you'); analyse(); } else void bossTurn(my);
   };
 
-  const startEngine = async () => {
-    try {
-      const { engine: e } = await Engine.create();
-      engine.current = e;
-      e.newGame();
-      void bookName(game.fen()); // tải trước dữ liệu sách khai cuộc
-      if (init?.over) setPhase('over');
-      else if (game.isGameOver()) finish(overText(game, boss.name, meRef.current), outcome(game, meRef.current), false);
-      else begin();
-    } catch (err) {
-      setError((err as Error).message);
-      setPhase('error');
-    }
+  /** Engine sẵn sàng: tiếp tục ván (hoặc hiện ván đã xong). */
+  const onEngine = (e: Engine) => {
+    engine.current = e;
+    e.newGame();
+    void bookName(game.fen()); // tải trước dữ liệu sách khai cuộc
+    if (init?.over) setPhase('over');
+    else if (game.isGameOver()) finish(overText(game, boss.name, meRef.current), outcome(game, meRef.current), false);
+    else begin();
   };
+  const onEngineError = (err: unknown) => {
+    setError((err as Error).message);
+    setPhase('error');
+  };
+  const startEngine = () => Engine.create().then(({ engine: e }) => onEngine(e), onEngineError);
 
+  // Tải engine một lần khi mở màn; mọi setState nằm trong callback của promise (không chạy đồng bộ trong effect).
+  // `alive` chặn engine thừa khi React StrictMode chạy effect hai lần.
   useEffect(() => {
-    void startEngine();
-    return () => engine.current?.terminate();
+    let alive = true;
+    Engine.create().then(({ engine: e }) => (alive ? onEngine(e) : e.terminate()), (err) => alive && onEngineError(err));
+    return () => { alive = false; engine.current?.terminate(); engine.current = null; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- chỉ chạy một lần khi mở màn
 
   /** Đi nước ngay (không chặn), chấm nước đó, rồi cho boss đáp. Engine chạy tuần tự: chấm (≤ 400 ms) rồi mới tới boss. */
@@ -226,20 +229,36 @@ export function Play({ boss }: { boss: Boss }) {
     if (gen.current !== my) return;
     if (a) {
       const isBest = a.best === move.lan;
-      let after = a.pawns, pv = a.pv, why: string | null = null;
+      let after = a.pawns, pv = a.pv, cons: string | null = null, onlyMove = false;
       if (!isBest) { // nước sách cũng chấm: biến bẫy trong sách (như Fool's Mate) vẫn là lỗi
         const r = await e.search(game.fen(), ANALYSIS, GRADE_GO);
         if (gen.current !== my) return;
         if (r.info?.score) {
           after = -toPawns(r.info.score);
           pv = [move.lan, ...r.info.pv];
-          if (r.best && r.best !== '(none)') why = `${consequence(game.fen(), r.best, r.info.score, boss.name)} Nước tốt hơn: ${viSan(a.bestSan)}.`;
+          if (r.best && r.best !== '(none)') cons = consequence(game.fen(), r.best, r.info.score, boss.name);
+        }
+      } else if (!opening) {
+        // "Nước hay": nước tốt thứ hai (tìm trong mọi nước trừ nước vừa đi) tụt hẳn so với nước tốt nhất
+        const others = new Chess(before).moves({ verbose: true }).filter((x) => x.lan !== move.lan).map((x) => x.lan);
+        if (others.length && a.pawns > -3) {
+          const r2 = await e.search(before, ANALYSIS, `movetime 300 searchmoves ${others.join(' ')}`);
+          if (gen.current !== my) return;
+          if (r2.info?.score) onlyMove = wc(a.pawns) - wc(toPawns(r2.info.score)) >= 0.25;
         }
       }
-      const cls = gradeClass({ before: a.pawns, after, isBest, isBook: !!opening, sacrifice: !opening && isSacrifice(before, pv) });
+      const cls = gradeClass({ before: a.pawns, after, isBest, isBook: !!opening, sacrifice: !opening && isSacrifice(before, pv), onlyMove });
       const facts = describeMove(before, move.san);
-      const text = cls === 'book' ? `${opening}.${facts.length ? ` ${cap(facts.join(', '))}.` : ''}`
-        : cls === 'brilliant' ? 'Thí quân mà thế cờ vẫn tốt cho bạn.' : BAD.includes(cls) ? why : facts.length ? `${facts.join(', ')}.` : null;
+      const notes = positionalNotes(before, move.san, ply);
+      const bestFacts = describeMove(before, a.bestSan);
+      const better = `Nước tốt hơn: ${viSan(a.bestSan)}${bestFacts.length ? ` (${bestFacts.join(', ')})` : ''}.`;
+      const plus = [...facts, ...notes.good];
+      const text = cls === 'book' ? `${opening}.${plus.length ? ` ${cap(plus.join(', '))}.` : ''}`
+        : cls === 'brilliant' ? 'Thí quân mà thế cờ vẫn tốt cho bạn.'
+          : cls === 'great' ? `Nước duy nhất giữ được thế cờ${plus.length ? `: ${plus.join(', ')}` : ''}.`
+            : cls === 'inaccuracy' ? [notes.bad.length ? `${cap(notes.bad.join(', '))}.` : cons, better].filter(Boolean).join(' ')
+              : BAD.includes(cls) ? [cons, notes.bad.length ? `${cap(notes.bad.join(', '))}.` : '', better].filter(Boolean).join(' ')
+                : plus.length ? `${plus.join(', ')}.` : null;
       setGrades((gr) => ({ ...gr, [ply]: { cls, text, before: a.pawns, after, best: a.best } }));
       setEvalPawns(after);
       putEval(ply, after);
@@ -334,6 +353,7 @@ export function Play({ boss }: { boss: Boss }) {
     last && !mine(history.length - 1) ? `${boss.name} vừa đi ${viSan(last.san)}${bossFacts.length ? `: ${bossFacts.join(', ')}` : ''}.` : '',
     danger ? `Chú ý: ${PIECE_VI[danger.type]} ở ${danger.square} của bạn đang bị đe dọa.` : '',
     'Lượt bạn.',
+    !danger && phase === 'you' ? planTip(fen, color, history.length) ?? '' : '',
   ].filter(Boolean).join(' ');
   const badMove = myGrade && (myGrade.cls === 'mistake' || myGrade.cls === 'blunder');
   let text: ReactNode, sub: ReactNode = null, tone = 'plain', actions: ReactNode = null;

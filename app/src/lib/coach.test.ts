@@ -67,6 +67,8 @@ test('gradeClass: sách khai cuộc và xuất sắc', () => {
   assert.equal(gradeClass({ before: 0.5, after: 0.5, isBest: true, isBook: false, sacrifice: true }), 'brilliant');
   assert.equal(gradeClass({ before: 6, after: 6, isBest: true, isBook: false, sacrifice: true }), 'best'); // đã thắng áp đảo
   assert.equal(gradeClass({ before: 0.5, after: -2, isBest: false, isBook: false, sacrifice: true }), 'blunder');
+  assert.equal(gradeClass({ before: 0.2, after: 0.2, isBest: true, isBook: false, sacrifice: false, onlyMove: true }), 'great');
+  assert.equal(gradeClass({ before: 0.5, after: 0.5, isBest: true, isBook: false, sacrifice: true, onlyMove: true }), 'brilliant'); // thí quân xếp trên
 });
 
 test('sách khai cuộc: Italian Game có, nước lạ không', () => {
