@@ -358,8 +358,6 @@ a.menu-item { color: var(--text); }
 /* ---------- Mốc 5: offline, xuất PGN ---------- */
 .offline-status { margin-top: 32px; color: var(--muted); }
 .offline-status.ready { color: var(--positive); }
-.offline-status + .credit { margin-top: 8px; }
 .recent-tools { display: inline-flex; align-items: baseline; gap: 16px; }
-.credit a { text-decoration: underline; text-underline-offset: 2px; }
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 500; }
 .brand img { border-radius: 7px; }

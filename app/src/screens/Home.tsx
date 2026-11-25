@@ -153,7 +153,6 @@ export function Home() {
         )}
       </div>
       {offline !== 'off' && <p className={`offline-status ${offline}`}>{offline === 'ready' ? 'Đã sẵn sàng chơi offline.' : 'Đang tải dữ liệu để chơi offline…'}</p>}
-      <p className="credit">Quân cờ: bộ cburnett của Colin M.L. Burnett, CC BY-SA 3.0. Engine: Stockfish 19, GPLv3. Sách khai cuộc: lichess-org/chess-openings, CC0. Mã nguồn (GPLv3): <a href="https://github.com/vudung1202/nuoc-hay">github.com/vudung1202/nuoc-hay</a>.</p>
 
       {sheetFor && (
         <NewGameSheet boss={sheetFor} onClose={() => setSheetFor(null)} onStart={(c) => start(sheetFor, c)}
