@@ -73,7 +73,8 @@ const table = ['| Cặp (mạnh – yếu) | Thắng | Hòa | Thua | Điểm c�
 console.log(table);
 console.log(`(${N} ván mỗi cặp, ${Math.round((Date.now() - t0) / 1000)} giây)`);
 const cfg = BOSSES.map((b) => `| ${b.name} | ${b.elo} | \`${Object.entries(b.options).map(([k, v]) => `${k}=${v}`).join(', ')}\` | \`go ${b.go}\` | ${Math.round((b.blunder ?? 0) * 100)}% |`).join('\n');
-writeFileSync(new URL('../docs/calibration.md', import.meta.url), `# Hiệu chỉnh độ khó boss
+// Đo một phần (PAIRS) thì chỉ in ra, không ghi đè bảng đầy đủ trong docs — gộp tay vào docs/calibration.md
+if (!only) writeFileSync(new URL('../docs/calibration.md', import.meta.url), `# Hiệu chỉnh độ khó boss
 
 Sinh bởi \`node tools/calibrate.mjs ${N}\`. Các boss liền kề tự đấu ${N} ván mỗi cặp, đổi màu xen kẽ, khai cuộc xoay vòng ${OPENINGS.length} biến.
 Mục tiêu: boss mạnh hơn được 80–95% điểm (chênh ≈ 250–500 Elo). Chạy trên Mac, nơi giới hạn depth đến trước giới hạn thời gian;

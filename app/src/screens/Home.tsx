@@ -97,7 +97,7 @@ export function Home() {
       )}
 
       <section className="bosses-sec" aria-labelledby="bosses-h">
-        <h2 id="bosses-h" className="sec-h">Bốn boss, từ dễ đến khó</h2>
+        <h2 id="bosses-h" className="sec-h">{BOSSES.length} boss, từ dễ đến khó</h2>
         <div className="bosses">
           {BOSSES.map((b) => {
             const r = record(games, b.id), isRec = b === rec;

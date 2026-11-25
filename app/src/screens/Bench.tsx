@@ -11,7 +11,8 @@ interface Row { id: string; label: string; target: string; value: string; status
 const nf = (d: number) => new Intl.NumberFormat('vi', { minimumFractionDigits: d, maximumFractionDigits: d });
 
 // Mục tiêu Mốc 1 (đo trên iPhone 14 Pro Max)
-const BOSS_MAX_MS = 1000;
+// Boss đi nước: không chậm hơn trần thời gian của chính nó (lệnh go … movetime N) quá 200 ms
+const bossMaxMs = (go: string) => Number(/movetime (\d+)/.exec(go)?.[1] ?? 1000) + 200;
 const HINT_MIN_DEPTH = 12; // shortcut: ngưỡng tạm, chỉnh sau khi so chất lượng gợi ý
 const REVIEW_MAX_MS = 30000;
 const REVIEW_GO = 'depth 12 movetime 300'; // trần 300 ms/thế cờ để máy chậm vẫn xong trong ~25 giây
@@ -28,7 +29,7 @@ const PROBES = [10, 40, 70].map((i) => positions[i]);
 const initialRows = (): Row[] => [
   { id: 'load', label: 'Tải engine', target: 'Ghi lại', value: '', status: 'wait' },
   { id: 'nps', label: 'Tốc độ tính (2 giây)', target: 'Ghi lại', value: '', status: 'wait' },
-  ...BOSSES.map((b) => ({ id: b.id, label: `${b.name} đi nước`, target: `≤ ${secs(BOSS_MAX_MS)}`, value: '', status: 'wait' as Status })),
+  ...BOSSES.map((b) => ({ id: b.id, label: `${b.name} đi nước`, target: `≤ ${secs(bossMaxMs(b.go))}`, value: '', status: 'wait' as Status })),
   { id: 'hint', label: 'Gợi ý: độ sâu trong 1,5 giây', target: `≥ ${HINT_MIN_DEPTH}`, value: '', status: 'wait' },
   { id: 'review', label: 'Review 40 nước (tối đa 300 ms/thế cờ)', target: `≤ ${secs(REVIEW_MAX_MS)}`, value: '', status: 'wait' },
 ];
@@ -57,7 +58,7 @@ export function Bench() {
         const ms: number[] = [];
         for (const f of PROBES) ms.push((await engine.search(f, b.options, b.go)).ms);
         const max = Math.max(...ms), avg = ms.reduce((a, x) => a + x, 0) / ms.length;
-        set(b.id, `TB ${secs(avg)}, chậm nhất ${secs(max)}`, max <= BOSS_MAX_MS ? 'ok' : 'bad');
+        set(b.id, `TB ${secs(avg)}, chậm nhất ${secs(max)}`, max <= bossMaxMs(b.go) ? 'ok' : 'bad');
       }
 
       set('hint', 'đang đo…', 'run');

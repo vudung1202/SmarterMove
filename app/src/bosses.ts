@@ -27,6 +27,10 @@ export const BOSSES: Boss[] = [
     options: { 'Skill Level': 20, UCI_LimitStrength: true, UCI_Elo: 1400 }, go: 'depth 12 movetime 800', minDelayMs: 700 },
   { id: 'xe-sat', name: 'Xe Sắt', elo: 1800, piece: 'bR', style: 'Phạt nước hở, tàn cuộc chắc tay.',
     options: { 'Skill Level': 20, UCI_LimitStrength: true, UCI_Elo: 1800 }, go: 'depth 14 movetime 900', minDelayMs: 600 },
+  { id: 'hau-bac', name: 'Hậu Bạc', elo: 2200, piece: 'bQ', style: 'Ép thế liên tục, hiếm khi để lọt đòn chiến thuật.',
+    options: { 'Skill Level': 20, UCI_LimitStrength: true, UCI_Elo: 2200 }, go: 'depth 16 movetime 1200', minDelayMs: 500 },
+  { id: 'vua-vang', name: 'Vua Vàng', elo: 2600, piece: 'bK', style: 'Tính sâu, giữ ưu thế và chuyển hóa gọn như kiện tướng.',
+    options: { 'Skill Level': 20, UCI_LimitStrength: true, UCI_Elo: 2600 }, go: 'depth 18 movetime 1500', minDelayMs: 500 },
 ];
 
 export const bossById = (id: string) => BOSSES.find((b) => b.id === id) ?? BOSSES[1];
