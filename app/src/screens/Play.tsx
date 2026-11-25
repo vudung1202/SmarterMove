@@ -30,6 +30,15 @@ function material(fen: string) {
 }
 
 /** Kết quả theo phía người chơi khi ván kết thúc theo luật (chiếu hết / hòa). */
+/** Các quân phải trượt khi vẽ nước `m`: quân đi, và thêm xe khi nhập thành. */
+function slidesOf(m: Move) {
+  const rank = m.color === 'w' ? '1' : '8';
+  const out: { from: string; to: string }[] = [{ from: m.from, to: m.to }];
+  if (m.flags.includes('k')) out.push({ from: 'h' + rank, to: 'f' + rank });
+  if (m.flags.includes('q')) out.push({ from: 'a' + rank, to: 'd' + rank });
+  return out;
+}
+
 const outcome = (g: Chess, me: Color): Result => (g.isCheckmate() ? (g.turn() === me ? 'loss' : 'win') : 'draw');
 
 function overText(g: Chess, bossName: string, me: Color) {
@@ -73,10 +82,18 @@ export function Play({ boss }: { boss: Boss }) {
     if (over && result) void putGame({ id: gameId, bossId: boss.id, color, sans, grades, result, reason: over, endedAt: new Date().toISOString() });
   }, [gameId, boss.id, color, history, grades, over, result]);
 
+  // Số nửa nước đã vẽ; tăng đúng 1 thì cho quân vừa đi trượt tới ô mới (đi lại, ván mới thì không)
+  const drawnLen = useRef(game.history().length);
+  const [slide, setSlide] = useState<{ key: number; moves: { from: string; to: string }[] } | null>(null);
+
   /** Đẩy thế cờ hiện tại của game ra state để vẽ lại */
   const sync = () => {
+    const h = game.history({ verbose: true });
+    const m = h.at(-1);
+    setSlide(m && h.length === drawnLen.current + 1 ? { key: h.length, moves: slidesOf(m) } : null);
+    drawnLen.current = h.length;
     setFen(game.fen());
-    setHistory(game.history({ verbose: true }));
+    setHistory(h);
   };
 
   const finish = (text: string, res: Result) => {
@@ -283,6 +300,7 @@ export function Play({ boss }: { boss: Boss }) {
         <div className="board-wrap">
           <EvalBar pawns={evalPawns} me={color} />
           <Board fen={fen} marks={marks} arrows={arrows} onSquare={onSquare} orientation={color} label={`Bàn cờ, ván với ${boss.name}`}
+            slides={slide?.moves} slideKey={slide?.key}
             badge={myGrade && !badgeHidden ? { square: history[myPly].to, cls: myGrade.cls } : null} />
           {promo && (
             <div className="promo" role="dialog" aria-label="Chọn quân phong cấp">

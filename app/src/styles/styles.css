@@ -84,7 +84,7 @@ h1, h2, h3 { font-weight: 500; }
 .resume-text { flex: 1; min-width: 0; }
 .resume-text h2 { margin-bottom: 4px; }
 .sec-h { margin-bottom: 12px; }
-.bosses { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
+.bosses { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); } /* 6 boss: 2 hàng × 3 */
 .boss { display: flex; flex-direction: column; gap: 6px; padding: var(--card-pad); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .boss.is-rec { border: 1.5px solid var(--text); padding: calc(var(--card-pad) - 0.5px); }
 .boss-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
@@ -125,8 +125,9 @@ button.sq { cursor: pointer; }
 button.sq:focus-visible { outline: 3px solid var(--text); outline-offset: -3px; border-radius: 0; }
 .sq.dark { background: var(--sq-dark); }
 .sq img { position: absolute; inset: 4%; width: 92%; height: 92%; pointer-events: none; }
-.sq.last::before, .sq.sel::before { content: ""; position: absolute; inset: 0; background: rgba(20, 20, 20, 0.13); }
-.sq.sel::before { background: rgba(20, 20, 20, 0.26); }
+/* nước vừa đi tô vàng như Chess.com; ô đang chọn đậm hơn */
+.sq.last::before, .sq.sel::before { content: ""; position: absolute; inset: 0; background: rgba(247, 222, 58, 0.5); }
+.sq.sel::before { background: rgba(247, 222, 58, 0.75); }
 .sq.hint { outline: 4px solid var(--coach); outline-offset: -4px; }
 .sq.check { outline: 4px solid var(--negative); outline-offset: -4px; }
 .sq.dot::after { content: ""; position: absolute; left: 36%; top: 36%; width: 28%; height: 28%; border-radius: 50%; background: rgba(20, 20, 20, 0.28); }
@@ -372,3 +373,8 @@ a.menu-item { color: var(--text); }
   .install-text { flex: 1 1 220px; }
   .install-actions { width: 100%; justify-content: flex-end; }
 }
+
+/* quân vừa đi trượt từ ô cũ sang ô mới (--dx, --dy tính theo số ô) */
+.piece { position: absolute; inset: 0; pointer-events: none; }
+.piece.slide { z-index: 3; animation: piece-slide 220ms cubic-bezier(0.25, 0.8, 0.3, 1); }
+@keyframes piece-slide { from { transform: translate(calc(var(--dx) * 100%), calc(var(--dy) * 100%)); } }

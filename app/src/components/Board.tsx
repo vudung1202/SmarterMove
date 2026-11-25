@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js';
+import type { CSSProperties } from 'react';
 import { PIECE_VI, type MoveClass } from '../lib/coach.ts';
 import { Badge } from './Badge.tsx';
 
@@ -16,6 +17,9 @@ interface Props {
   /** phía ở dưới bàn cờ */
   orientation?: 'w' | 'b';
   coords?: boolean;
+  /** quân vừa đi trượt từ `from` tới `to` (nhập thành có 2 cặp); `slideKey` đổi thì chạy lại hiệu ứng */
+  slides?: { from: string; to: string }[];
+  slideKey?: string | number;
   label: string;
 }
 
@@ -33,8 +37,10 @@ function ArrowShape({ from, to, kind, flip }: Arrow & { flip: boolean }) {
   );
 }
 
-export function Board({ fen, marks = {}, arrows = [], onSquare, badge, orientation = 'w', coords = true, label }: Props) {
+export function Board({ fen, marks = {}, arrows = [], onSquare, badge, orientation = 'w', coords = true, slides = [], slideKey, label }: Props) {
   const flip = orientation === 'b';
+  // vị trí ô trên màn hình (cột, hàng), đã tính chiều lật bàn cờ
+  const pos = (sq: string) => { const f = FILES.indexOf(sq[0]), r = 8 - Number(sq[1]); return flip ? [7 - f, 7 - r] : [f, r]; };
   const c = new Chess(fen);
   const grid = c.board();
   const check = c.inCheck() ? c.findPiece({ type: 'k', color: c.turn() })[0] : null;
@@ -49,7 +55,13 @@ export function Board({ fen, marks = {}, arrows = [], onSquare, badge, orientati
         <>
           {coords && i === 7 && <span className="coord file">{FILES[f]}</span>}
           {coords && j === 0 && <span className="coord rank">{8 - r}</span>}
-          {p && <img src={`pieces/${p.color}${p.type.toUpperCase()}.svg`} alt="" draggable={false} />}
+          {p && (() => {
+            const s = slides.find((x) => x.to === sq);
+            const img = <img src={`pieces/${p.color}${p.type.toUpperCase()}.svg`} alt="" draggable={false} />;
+            if (!s) return <span className="piece">{img}</span>;
+            const [fx, fy] = pos(s.from), [tx, ty] = pos(s.to);
+            return <span key={slideKey} className="piece slide" style={{ '--dx': fx - tx, '--dy': fy - ty } as CSSProperties}>{img}</span>;
+          })()}
           {badge?.square === sq && <Badge cls={badge.cls} />}
         </>
       );
